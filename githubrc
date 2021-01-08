@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Source file containing:
+#  export GITHUB_USERNAME="your github username"
+#  export GITHUB_TOKEN="your github access token"
+source ${HOME}/.github_credentials
+
+function git-clone-my () {
+  local repo=$1
+  [[ -z "$repo" ]] && echo "Usage: git-clone-my <repo name>" && return 1
+  [[ -z "$GITHUB_USERNAME" ]] && echo "ERROR: missing env GITHUB_USERNAME" && return 1
+  [[ -z "$GITHUB_TOKEN" ]] && echo "ERROR: missing env GITHUB_TOKEN" && return 1
+  git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/${repo}.git
+}
