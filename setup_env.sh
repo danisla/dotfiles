@@ -107,6 +107,17 @@ else
     log_green "INFO: kubefunc repo already cloned"
 fi
 
+# Source kubefun to get helper functions
+source ${BASE}/kubefunc/kubefunc.bash
+
+# Install k9s
+if [[ ! -e ${HOME}/bin/k9s ]]; then
+    log_cyan "INFO: Installing k9s"
+    download-latest-k9s
+else
+    log_green "INFO: k9s is already installed, run download-latest-k9s to update"
+fi
+
 # Clone kube-ps1 repo
 if [[ ! -d ${HOME}/.kube-ps1 ]]; then
     log_cyan "INFO: Cloning kube-ps1 repo to ${HOME}/.kube-ps1"
