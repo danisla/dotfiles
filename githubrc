@@ -12,3 +12,11 @@ function git-clone-my () {
   [[ -z "$GITHUB_TOKEN" ]] && echo "ERROR: missing env GITHUB_TOKEN" && return 1
   git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/${repo}.git
 }
+
+function git-clone-private () {
+  local repo=$1
+  [[ -z "$repo" ]] && echo "Usage: git-clone-private <username>/<repo name>" && return 1
+  [[ -z "$GITHUB_USERNAME" ]] && echo "ERROR: missing env GITHUB_USERNAME" && return 1
+  [[ -z "$GITHUB_TOKEN" ]] && echo "ERROR: missing env GITHUB_TOKEN" && return 1
+  git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${repo}.git
+}

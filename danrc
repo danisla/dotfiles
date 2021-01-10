@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ~/.githubrc
+. ~/project/dotfiles/githubrc
 . ~/project/dockerfiles/.dockerfunc.bash
 . ~/project/gcloudfunc/gcloudfunc.bash
 . ~/project/kubefunc/kubefunc.bash

@@ -1,0 +1,10 @@
+[user]
+        name = Dan Isla
+        email = dan.isla@gmail.com
+[credential "https://source.developers.google.com"]
+        helper = gcloud.sh
+[alias]
+        s = status
+        d = diff
+[core]
+        editor = vim
