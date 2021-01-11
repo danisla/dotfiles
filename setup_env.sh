@@ -8,7 +8,7 @@ function log_cyan() { echo -e "${CYAN}$@${NC}"; }
 function log_green() { echo -e "${GREEN}$@${NC}"; }
 function log_red() { echo -e "${RED}$@${NC}"; }
 
-BASE=${HOME}/project
+BASE=${HOME}/project/env
 mkdir -p ${BASE}
 
 # Clone dotfiles repo
@@ -56,7 +56,7 @@ source ${BASE}/dotfiles/githubrc
 # Create symlink to gitconfig
 if [[ ! -e ${HOME}/.gitconfig ]]; then
     log_cyan "INFO: Creating symlink to ${BASE}/dotfiles/gitconfig -> ${HOME}/.gitconfig"
-    ln -s ${BASE}/dotfiles/gitconfig ${HOME}/.gitconfig
+    ln -sf ${BASE}/dotfiles/gitconfig ${HOME}/.gitconfig
 else
     log_green "INFO: gitconfig already configured"
 fi
@@ -115,20 +115,28 @@ if [[ ! -e ${HOME}/bin/k9s ]]; then
     log_cyan "INFO: Installing k9s"
     download-latest-k9s
 else
-    log_green "INFO: k9s is already installed, run download-latest-k9s to update"
+    log_green "INFO: k9s is already installed, delete ${HOME}/bin/k8s and run download-latest-k9s to update"
+fi
+
+# Install istioctl
+if [[ ! -e ${HOME}/bin/istioctl ]]; then
+    log_cyan "INFO: Installing istioctl"
+    download-latest-istioctl
+else
+    log_green "INFO: istioctl is already installed, delete ${HOME}/bin/istioctl and run download-latest-istio to update"
 fi
 
 # Clone kube-ps1 repo
-if [[ ! -d ${HOME}/.kube-ps1 ]]; then
-    log_cyan "INFO: Cloning kube-ps1 repo to ${HOME}/.kube-ps1"
-    git clone https://github.com/jonmosco/kube-ps1.git ${HOME}/.kube-ps1
+if [[ ! -d ${BASE}/kube-ps1 ]]; then
+    log_cyan "INFO: Cloning kube-ps1 repo to ${BASE}/kube-ps1"
+    git clone https://github.com/jonmosco/kube-ps1.git ${BASE}/kube-ps1
 else
     log_green "INFO: kube-ps1 repo already cloned"
 fi
 
-if ! grep -q 'source ${HOME}/project/dotfiles/danrc' ${HOME}/.bashrc; then
+if ! grep -q 'source ${HOME}/project/env/dotfiles/danrc' ${HOME}/.bashrc; then
     log_cyan "INFO: Updating bashrc"
-    echo 'source ${HOME}/project/dotfiles/danrc' | tee -a ${HOME}/.bashrc
+    echo 'source ${HOME}/project/env/dotfiles/danrc' | tee -a ${HOME}/.bashrc
 else
     log_green "INFO: bashrc already updated"
 fi

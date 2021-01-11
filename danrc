@@ -1,14 +1,12 @@
 #!/bin/bash
 
-. ~/project/dotfiles/githubrc
-. ~/project/dockerfiles/.dockerfunc.bash
-. ~/project/gcloudfunc/gcloudfunc.bash
-. ~/project/kubefunc/kubefunc.bash
+. ~/project/env/dotfiles/aliases
+. ~/project/env/dotfiles/githubrc
+. ~/project/env/dockerfiles/.dockerfunc.bash
+. ~/project/env/gcloudfunc/gcloudfunc.bash
+. ~/project/env/kubefunc/kubefunc.bash
+. ~/project/env/kube-ps1/kube-ps1.sh
 
-alias ls='ls --color'
-alias ll='ls -l'
-
-source ${HOME}/.kube-ps1/kube-ps1.sh
 PS1='[\W $(kube_ps1)]\$ '
 
 export PATH=${HOME}/bin:${PATH}:${HOME}/.local/bin
