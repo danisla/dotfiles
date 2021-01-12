@@ -1,0 +1,37 @@
+#!/bin/bash
+
+export CODE_SERVER_ROOT=${HOME}/lib/code-server
+
+function install-latest-code-server() {
+    echo "INFO: installing latest code-server to: ${CODE_SERVER_ROOT}"
+    if [[ -d ${CODE_SERVER_ROOT} ]]; then
+        echo "WARN: code-server already installed at: ${CODE_SERVER_ROOT}"
+        read -p "      Overwrite? (y/n): " INPUT
+        [[ ${INPUT,,} != "y" ]] && return 1
+        rm -Rf ${CODE_SERVER_ROOT}
+    fi
+    docker pull codercom/code-server:latest > /dev/null
+    CID=$(docker create codercom/code-server:latest)
+    mkdir -p $(dirname ${CODE_SERVER_ROOT})
+    docker cp ${CID}:/usr/lib/code-server ${CODE_SERVER_ROOT}
+    docker rm ${CID} >/dev/null
+    echo "INFO: Done. code-server version: $(${CODE_SERVER_ROOT}/bin/code-server --version)"
+    echo "INFO: Start with: start-code-server"
+}
+
+# Starts code-server linked to coder cloud.
+# The proxy URL is displayed.
+# Intended to be run from cloud shell
+function start-code-server() {
+    nohup ${HOME}/bin/code-server --link 2>&1 > ${HOME}/.code-server-cloud-shell.log &
+    until grep "Proxying code-server" ${HOME}/.code-server-cloud-shell.log; do
+        sleep 1
+    done
+}
+
+# Stops the code-server instance started with start-code-server
+function stop-code-server() {
+    echo "INFO: stopping code-server"
+    kill $(pgrep -f '.*node.*code-server') >/dev/null 2>&1
+    kill $(pgrep -f 'coder-cloud-agent') >/dev/null 2>&1
+}

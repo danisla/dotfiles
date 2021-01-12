@@ -2,6 +2,7 @@
 
 . ~/project/env/dotfiles/aliases
 . ~/project/env/dotfiles/githubrc
+. ~/project/env/dotfiles/codeserverrc
 . ~/project/env/dockerfiles/.dockerfunc.bash
 . ~/project/env/gcloudfunc/gcloudfunc.bash
 . ~/project/env/kubefunc/kubefunc.bash

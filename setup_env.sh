@@ -141,4 +141,12 @@ else
     log_green "INFO: bashrc already updated"
 fi
 
+# Create symlink to tmux.conf
+if [[ ! -e ${HOME}/.tmux.conf ]]; then
+    log_cyan "INFO: Creating symlink to ${BASE}/dotfiles/tmux.conf -> ${HOME}/.tmux.conf"
+    ln -sf ${BASE}/dotfiles/tmux.conf ${HOME}/.tmux.conf
+else
+    log_green "INFO: tmux.conf already configured"
+fi
+
 log_green "INFO: Done, restart shell to see changes"
