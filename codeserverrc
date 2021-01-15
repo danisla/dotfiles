@@ -15,16 +15,24 @@ function install-latest-code-server() {
     mkdir -p $(dirname ${CODE_SERVER_ROOT})
     docker cp ${CID}:/usr/lib/code-server ${CODE_SERVER_ROOT}
     docker rm ${CID} >/dev/null
+    ln -sf ${HOME}/lib/code-server/bin/code-server ${HOME}/bin/code-server
     echo "INFO: Done. code-server version: $(${CODE_SERVER_ROOT}/bin/code-server --version)"
     echo "INFO: Start with: start-code-server"
+}
+
+# Starts code-server on port 8080
+# When run from Cloud Shell, the Web Preview feature can be used to access it.
+function start-code-server() {
+    nohup ${HOME}/bin/code-server --auth=none --bind-addr=0.0.0.0:8080 2>&1 > ${HOME}/.code-server-cloud-shell.log &
+    echo "INFO: started code-server on port 8080"
 }
 
 # Starts code-server linked to coder cloud.
 # The proxy URL is displayed.
 # Intended to be run from cloud shell
-function start-code-server() {
+function start-code-server-link() {
     nohup ${HOME}/bin/code-server --link 2>&1 > ${HOME}/.code-server-cloud-shell.log &
-    until grep "Proxying code-server" ${HOME}/.code-server-cloud-shell.log; do
+    until egrep --color=never "Proxying code-server|visit http" ${HOME}/.code-server-cloud-shell.log; do
         sleep 1
     done
 }
