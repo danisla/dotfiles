@@ -1,0 +1,86 @@
+#!/bin/bash
+
+export CYAN='\033[1;36m'
+export GREEN='\033[1;32m'
+export RED='\033[1;31m'
+export NC='\033[0m' # No Color
+function log_cyan() { echo -e "${CYAN}$@${NC}"; }
+function log_green() { echo -e "${GREEN}$@${NC}"; }
+function log_red() { echo -e "${RED}$@${NC}"; }
+
+###
+# Helper function for local development of pod-broker controller
+###
+function pod-broker() {
+    local build=false
+    local push=false
+    local deploy=false
+    local project_id=""
+    local deploy_region=""
+
+    [[ $# -eq 0 ]] && log_cyan "USAGE: pod-broker <build|push|deploy-REGION> [-p <project id>]" && return 1
+
+    while (( "$#" )); do
+        case ${1,,} in
+            "build") build=true ;;
+            "push") push=true ;;
+            deploy-*)
+                deploy=true
+                deploy_region=${1/deploy-/}
+                ;;
+            "-p")
+                shift
+                project_id=$1
+                shift
+                ;;
+            *) log_red "ERROR: Invalid argument '$1', USAGE: pod-broker <build|push|deploy-REGION> [-p <project id>]" && return 1 ;;
+        esac
+        shift
+    done
+
+    if [[ -z "${project_id}" ]]; then
+        log_cyan "INFO: Fetching project ID"
+        project_id=$(gcloud config get-value project 2>/dev/null)
+        [[ -z "${project_id}" ]] && log_red "ERROR: no project set" && return 1
+        log_cyan "INFO: using project: ${project_id}"
+    fi
+
+    local image="gcr.io/${project_id}/kube-pod-broker-controller:latest"
+
+    if [[ ${build} == true ]]; then
+        log_cyan "INFO: Building controller image: ${image}"
+        (
+            cd ${HOME}/project/selkies/images/controller && \
+            docker build -t ${image} .
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: docker build failed" && return 1
+    fi
+
+    if [[ ${push} == true ]]; then
+        log_cyan "INFO: pushing image to registry"
+        docker push ${image}
+        [[ $? -ne 0 ]] && log_red "ERROR: docker push failed" && return 1
+    fi
+
+    if [[ ${deploy} == true ]]; then
+        ctx="gke_${project_id}_${deploy_region}_broker-${deploy_region}"
+        if ! kubectx | grep -q $ctx; then
+            log_red "ERROR: kubectx not found: $ctx, run 'gke-credentials -p' to fetch context"
+            return 1
+        fi
+        digest="$(gcr-get-digest $image)"
+        log_cyan "INFO: deploying updated controller with digest $digest to region: ${deploy_region}"
+
+        # Update pod-broker statefulset
+        curr_yaml=$(kubectl --context $ctx --namespace pod-broker-system get statefulset pod-broker -o yaml)
+        echo "$curr_yaml" | sed -e "s|image: gcr.io/${project_id}/kube-pod-broker-controller.*|image: gcr.io/${project_id}/kube-pod-broker-controller@${digest}|g" | \
+            kubectl --context $ctx apply -f -
+        [[ $? -ne 0 ]] && log_red "ERROR: pod-broker deployment failed" && return 1
+        
+        # Update image-puller daemonset
+        curr_yaml=$(kubectl --context $ctx --namespace pod-broker-system get daemonset pod-broker-image-puller -o yaml)
+        echo "$curr_yaml" | sed -e "s|image: gcr.io/${project_id}/kube-pod-broker-controller.*|image: gcr.io/${project_id}/kube-pod-broker-controller@${digest}|g" | \
+            kubectl --context $ctx apply -f -
+        [[ $? -ne 0 ]] && log_red "ERROR: image-puller deployment failed" && return 1
+    fi
+}
