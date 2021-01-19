@@ -8,6 +8,160 @@ function log_cyan() { echo -e "${CYAN}$@${NC}"; }
 function log_green() { echo -e "${GREEN}$@${NC}"; }
 function log_red() { echo -e "${RED}$@${NC}"; }
 
+export SELKIES_REPO_DIR=${SELKIES_REPO_DIR:-${HOME}/project/selkies}
+
+alias selkies-cli="${SELKIES_REPO_DIR}/setup/scripts/selkies_cli.sh"
+
+###
+# Helper function to run selkies cloud build tasks on multiple projects and regions
+###
+function selkies-env() {
+    local project_prep=false
+    local build_images=false
+    local base_tf=false
+    local deploy_cluster=false
+    local wi_sa=false
+    local deploy_private_cluster=false
+    local deploy_node_pool_apps=false
+    local deploy_node_pool_gpu=false
+    local deploy_manifests=false
+
+    local action="apply"
+    local project_id=""
+    local region=""
+
+    [[ $# -eq 0 ]] && log_cyan "USAGE: selkies-env [<prep|images|base|cluster|private-cluster|wi-sa|node-pool-apps|node-pool-gpu|manifests] [-p <project id>] [-r <region>] [-a <plan|apply|destroy>]" && return 1
+
+    while (( "$#" )); do
+        case ${1,,} in
+            "-p")
+                shift
+                project_id=$1
+                ;;
+            "-r")
+                shift
+                region=$1
+                ;;
+            "-a")
+                shift
+                action=$1
+                ;;
+            "prep") project_prep=true ;;
+            "images") build_images=true ;;
+            "base") base_tf=true ;;
+            "cluster") deploy_cluster=true ;;
+            "private-cluster") deploy_private_cluster=true ;;
+            "wi-sa") wi_sa=true ;;
+            "node-pool-apps") deploy_node_pool_apps=true ;;
+            "node-pool-gpu") deploy_node_pool_gpu=true ;;
+            "manifests") deploy_manifests=true ;;            
+            *) log_red "ERROR: Invalid argument '$1'" && return 1 ;;
+        esac
+        shift
+    done
+
+    if [[ -z "${project_id}" ]]; then
+        log_cyan "INFO: Fetching project ID"
+        project_id=$(gcloud config get-value project 2>/dev/null)
+        [[ -z "${project_id}" ]] && log_red "ERROR: no project set" && return 1
+        log_cyan "INFO: using project: ${project_id}"
+    fi
+
+    if [[ ${project_prep} == true ]]; then
+        log_cyan "INFO: Enabling services and configuring service accounts for project: ${project_id}"
+        gcloud services enable --project ${project_id?} \
+            cloudresourcemanager.googleapis.com \
+            compute.googleapis.com \
+            container.googleapis.com \
+            cloudbuild.googleapis.com \
+            servicemanagement.googleapis.com \
+            serviceusage.googleapis.com \
+            stackdriver.googleapis.com \
+            secretmanager.googleapis.com \
+            iap.googleapis.com
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to enable services" && return 1
+
+        CLOUDBUILD_SA=$(gcloud projects describe ${project_id?} --format='value(projectNumber)')@cloudbuild.gserviceaccount.com && \
+        (
+            gcloud projects add-iam-policy-binding ${project_id?} --member serviceAccount:${CLOUDBUILD_SA?} --role roles/owner && \
+            gcloud projects add-iam-policy-binding ${project_id?} --member serviceAccount:${CLOUDBUILD_SA?} --role roles/iam.serviceAccountTokenCreator
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to configure cloud build service account" && return 1
+    fi
+
+    if [[ ${build_images} == true ]]; then
+        log_cyan "INFO: Building images"
+        (
+            cd ${SELKIES_REPO_DIR}/images
+            gcloud builds submit --project ${project_id}
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to build images" && return 1
+    fi
+
+    if [[ ${base_tf} == true ]]; then
+        log_cyan "INFO: ${action} base infra"
+        (
+            cd ${SELKIES_REPO_DIR}/setup/infra
+            gcloud builds submit --project ${project_id} --substitutions=_ACTION=${action}
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to ${action} base infra" && return 1
+    fi
+
+    [[ -z "${region}" ]] && log_red "ERROR: missing region" && return 1
+
+    if [[ ${deploy_cluster} == true ]]; then
+        log_cyan "INFO: ${action} cluster to ${region}"
+        (
+            cd ${SELKIES_REPO_DIR}/setup/infra/cluster
+            gcloud builds submit --project ${project_id} --substitutions=_REGION=${region},_ACTION=${action}
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to ${action} cluster to ${region}" && return 1
+    elif [[ ${deploy_private_cluster} == true ]]; then
+        log_cyan "INFO: ${action} private-cluster to ${region}"
+        (
+            cd ${SELKIES_REPO_DIR}/setup/infra/private-cluster
+            gcloud builds submit --project ${project_id} --substitutions=_REGION=${region},_ACTION=${action}
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to ${action} private-cluster to ${region}" && return 1
+    fi
+
+    if [[ ${wi_sa} == true ]]; then
+        log_cyan "INFO: ${action} workload identity service accounts (wi-sa) to project ${project_id}"
+        (
+            cd ${SELKIES_REPO_DIR}/setup/infra/wi-sa
+            gcloud builds submit --project ${project_id} --substitutions=_ACTION=${action}
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to ${action} workload identity service accounts" && return 1
+    fi
+
+    if [[ ${deploy_node_pool_apps} == true ]]; then
+        log_cyan "INFO: ${action} node-pool-apps to ${region}"
+        (
+            cd ${SELKIES_REPO_DIR}/setup/infra/node-pool-apps
+            gcloud builds submit --project ${project_id} --substitutions=_REGION=${region},_ACTION=${action}
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to ${action} node-pool-apps to ${region}" && return 1
+    fi
+
+    if [[ ${deploy_node_pool_gpu} == true ]]; then
+        log_cyan "INFO: ${action} node-pool-gpu to ${region}"
+        (
+            cd ${SELKIES_REPO_DIR}/setup/infra/node-pool-gpu
+            gcloud builds submit --project ${project_id} --substitutions=_REGION=${region},_ACTION=${action}
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to ${action} node-pool-gpu to ${region}" && return 1
+    fi
+
+    if [[ ${deploy_manifests} == true ]]; then
+        log_cyan "INFO: deploying manifests to ${region}"
+        (
+            cd ${SELKIES_REPO_DIR}/setup/manifests
+            gcloud builds submit --project ${project_id} --substitutions=_REGION=${region}
+        )
+        [[ $? -ne 0 ]] && log_red "ERROR: failed to deploy manifests to ${region}" && return 1
+    fi
+}
+
 ###
 # Helper function for local development of pod-broker controller
 ###
@@ -31,7 +185,6 @@ function pod-broker() {
             "-p")
                 shift
                 project_id=$1
-                shift
                 ;;
             *) log_red "ERROR: Invalid argument '$1', USAGE: pod-broker <build|push|deploy-REGION> [-p <project id>]" && return 1 ;;
         esac
@@ -50,7 +203,7 @@ function pod-broker() {
     if [[ ${build} == true ]]; then
         log_cyan "INFO: Building controller image: ${image}"
         (
-            cd ${HOME}/project/selkies/images/controller && \
+            cd ${SELKIES_REPO_DIR}/images/controller && \
             docker build -t ${image} .
         )
         [[ $? -ne 0 ]] && log_red "ERROR: docker build failed" && return 1
