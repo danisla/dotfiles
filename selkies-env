@@ -13,6 +13,36 @@ export SELKIES_REPO_DIR=${SELKIES_REPO_DIR:-${HOME}/project/selkies}
 alias selkies-cli="${SELKIES_REPO_DIR}/setup/scripts/selkies_cli.sh"
 
 ###
+# Helper function to display list of selkies parsed clusters.
+###
+function _selkies_select_cluster() {
+  IFS=';' read -ra clusters <<< "$(kubectx | grep '_broker-' | sed -e 's/^gke_//g' -e 's/_broker-.*//g' | sort | tr '\n' ';')"
+  local count=1
+  for i in ${clusters[@]}; do
+    IFS="_" read -ra TOKS <<< "${i}"
+    echo "  $count) ${TOKS[0]} (${TOKS[1]})" >&2
+    ((count=count+1))
+  done
+  local sel=0
+  while [[ $sel -lt 1 || $sel -ge $count ]]; do
+    read -p "Select a Selkies deployment: " sel >&2
+  done
+  echo "${clusters[(sel-1)]}"
+}
+
+###
+# Helper function to run cloud build based on available kube contexts
+###
+function selkies-deploy() {
+    cluster=$(_selkies_select_cluster)
+    IFS="_" read -ra TOKS <<< "${cluster}"
+    project=${TOKS[0]}
+    region=${TOKS[1]}
+    log_cyan "Running cloud build in $(pwd), --project=$project --substitutions=_REGION=$region,$@"
+    gcloud builds submit --project $project --substitutions=_REGION=$region,$@
+}
+
+###
 # Helper function to run selkies cloud build tasks on multiple projects and regions
 ###
 function selkies-env() {
@@ -107,9 +137,8 @@ function selkies-env() {
         [[ $? -ne 0 ]] && log_red "ERROR: failed to ${action} base infra" && return 1
     fi
 
-    [[ -z "${region}" ]] && log_red "ERROR: missing region" && return 1
-
     if [[ ${deploy_cluster} == true ]]; then
+        [[ -z "${region}" ]] && log_red "ERROR: missing region" && return 1
         log_cyan "INFO: ${action} cluster to ${region}"
         (
             cd ${SELKIES_REPO_DIR}/setup/infra/cluster
@@ -117,6 +146,7 @@ function selkies-env() {
         )
         [[ $? -ne 0 ]] && log_red "ERROR: failed to ${action} cluster to ${region}" && return 1
     elif [[ ${deploy_private_cluster} == true ]]; then
+        [[ -z "${region}" ]] && log_red "ERROR: missing region" && return 1
         log_cyan "INFO: ${action} private-cluster to ${region}"
         (
             cd ${SELKIES_REPO_DIR}/setup/infra/private-cluster
@@ -135,6 +165,7 @@ function selkies-env() {
     fi
 
     if [[ ${deploy_node_pool_apps} == true ]]; then
+        [[ -z "${region}" ]] && log_red "ERROR: missing region" && return 1
         log_cyan "INFO: ${action} node-pool-apps to ${region}"
         (
             cd ${SELKIES_REPO_DIR}/setup/infra/node-pool-apps
@@ -144,6 +175,7 @@ function selkies-env() {
     fi
 
     if [[ ${deploy_node_pool_gpu} == true ]]; then
+        [[ -z "${region}" ]] && log_red "ERROR: missing region" && return 1
         log_cyan "INFO: ${action} node-pool-gpu to ${region}"
         (
             cd ${SELKIES_REPO_DIR}/setup/infra/node-pool-gpu
@@ -153,6 +185,7 @@ function selkies-env() {
     fi
 
     if [[ ${deploy_manifests} == true ]]; then
+        [[ -z "${region}" ]] && log_red "ERROR: missing region" && return 1
         log_cyan "INFO: deploying manifests to ${region}"
         (
             cd ${SELKIES_REPO_DIR}/setup/manifests
