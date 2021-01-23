@@ -1,3 +1,10 @@
 alias k='kubectl'
 alias ls='ls --color'
 alias ll='ls -l'
+
+alias yt-dl='docker run \
+    --rm -i \
+    -e PGID=$(id -g) \
+    -e PUID=$(id -u) \
+    -v "$(pwd)":/workdir:rw \
+    mikenye/youtube-dl'
