@@ -2,6 +2,7 @@
 
 . ${HOME}/project/env/dotfiles/aliases
 . ${HOME}/project/env/dotfiles/githubrc
+. ${HOME}/project/env/dotfiles/vsorc
 . ${HOME}/project/env/dotfiles/codeserverrc
 . ${HOME}/project/env/dotfiles/selkies-env
 . ${HOME}/project/env/dockerfiles/.dockerfunc.bash
