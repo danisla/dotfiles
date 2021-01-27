@@ -204,8 +204,9 @@ function pod-broker() {
     local deploy=false
     local project_id=""
     local deploy_region=""
+    local component="controller"
 
-    [[ $# -eq 0 ]] && log_cyan "USAGE: pod-broker <build|push|deploy-REGION> [-p <project id>]" && return 1
+    [[ $# -eq 0 ]] && log_cyan "USAGE: pod-broker <build|push|deploy-REGION> [-p <project id>] [-c <controller|web>]" && return 1
 
     while (( "$#" )); do
         case ${1,,} in
@@ -219,6 +220,11 @@ function pod-broker() {
                 shift
                 project_id=$1
                 ;;
+            "-c")
+                shift
+                component=${1,,}
+                [[ ! "${component}" =~ controller|web ]] && log_red "ERROR: invalid component, must be one of: controller,web" && return 1
+                ;;
             *) log_red "ERROR: Invalid argument '$1', USAGE: pod-broker <build|push|deploy-REGION> [-p <project id>]" && return 1 ;;
         esac
         shift
@@ -231,12 +237,12 @@ function pod-broker() {
         log_cyan "INFO: using project: ${project_id}"
     fi
 
-    local image="gcr.io/${project_id}/kube-pod-broker-controller:latest"
+    local image="gcr.io/${project_id}/kube-pod-broker-${component}:latest"
 
     if [[ ${build} == true ]]; then
-        log_cyan "INFO: Building controller image: ${image}"
+        log_cyan "INFO: Building ${component} image: ${image}"
         (
-            cd ${SELKIES_REPO_DIR}/images/controller && \
+            cd ${SELKIES_REPO_DIR}/images/${component} && \
             docker build -t ${image} .
         )
         [[ $? -ne 0 ]] && log_red "ERROR: docker build failed" && return 1
@@ -255,17 +261,17 @@ function pod-broker() {
             return 1
         fi
         digest="$(gcr-get-digest $image)"
-        log_cyan "INFO: deploying updated controller with digest $digest to region: ${deploy_region}"
+        log_cyan "INFO: deploying updated ${component} with digest $digest to region: ${deploy_region}"
 
         # Update pod-broker statefulset
         curr_yaml=$(kubectl --context $ctx --namespace pod-broker-system get statefulset pod-broker -o yaml)
-        echo "$curr_yaml" | sed -e "s|image: gcr.io/${project_id}/kube-pod-broker-controller.*|image: gcr.io/${project_id}/kube-pod-broker-controller@${digest}|g" | \
+        echo "$curr_yaml" | sed -e "s|image: gcr.io/${project_id}/kube-pod-broker-${component}.*|image: gcr.io/${project_id}/kube-pod-broker-${component}@${digest}|g" | \
             kubectl --context $ctx apply -f -
         [[ $? -ne 0 ]] && log_red "ERROR: pod-broker deployment failed" && return 1
         
         # Update image-puller daemonset
         curr_yaml=$(kubectl --context $ctx --namespace pod-broker-system get daemonset pod-broker-image-puller -o yaml)
-        echo "$curr_yaml" | sed -e "s|image: gcr.io/${project_id}/kube-pod-broker-controller.*|image: gcr.io/${project_id}/kube-pod-broker-controller@${digest}|g" | \
+        echo "$curr_yaml" | sed -e "s|image: gcr.io/${project_id}/kube-pod-broker-${component}.*|image: gcr.io/${project_id}/kube-pod-broker-${component}@${digest}|g" | \
             kubectl --context $ctx apply -f -
         [[ $? -ne 0 ]] && log_red "ERROR: image-puller deployment failed" && return 1
     fi
