@@ -6,17 +6,20 @@
 source ${HOME}/.github_credentials
 
 function git-clone-my () {
-  local repo=$1
-  [[ -z "$repo" ]] && echo "Usage: git-clone-my <repo name>" && return 1
+  local repo_name=$1
+  shift;
+  [[ -z "$repo_name" ]] && echo "Usage: git-clone-my <repo name>" && return 1
   [[ -z "$GITHUB_USERNAME" ]] && echo "ERROR: missing env GITHUB_USERNAME" && return 1
   [[ -z "$GITHUB_TOKEN" ]] && echo "ERROR: missing env GITHUB_TOKEN" && return 1
-  git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/${repo}.git
+  echo git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/${repo_name}.git $@
 }
 
 function git-clone-private () {
-  local repo=$1
-  [[ -z "$repo" ]] && echo "Usage: git-clone-private <username>/<repo name>" && return 1
+  local repo_user=$1
+  local repo_name=$2
+  shift; shift;
+  [[ -z "$repo_user" || -z "$repo_name" ]] && echo "Usage: git-clone-private <username/organization> <repo name>" && return 1
   [[ -z "$GITHUB_USERNAME" ]] && echo "ERROR: missing env GITHUB_USERNAME" && return 1
   [[ -z "$GITHUB_TOKEN" ]] && echo "ERROR: missing env GITHUB_TOKEN" && return 1
-  git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${repo}.git
+  echo git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${repo_user}/${repo_name}.git $@
 }

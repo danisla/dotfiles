@@ -9,9 +9,10 @@ source ${HOME}/.vso_credentials
 function git-vso-clone () {
   local vso_project=$1
   local vso_repo=$2
-  [[ $# -ne 2 ]] && echo "Usage: git-vso-clone <project> <repo name>" && return 1
+  shift; shift
+  [[ -z $vso_project || -z $vso_repo ]] && echo "Usage: git-vso-clone <project> <repo name>" && return 1
   [[ -z "$VSO_USERNAME" ]] && echo "ERROR: missing env VSO_USERNAME" && return 1
   [[ -z "$VSO_PASSWORD" ]] && echo "ERROR: missing env VSO_PASSWORD" && return 1
   [[ -z "$VSO_ORG" ]] && echo "ERROR: missing env VSO_ORG" && return 1
-  git clone https://${VSO_USERNAME}:${VSO_PASSWORD}@dev.azure.com/${VSO_ORG}/${vso_project}/_git/${vso_repo}
+  git clone https://${VSO_USERNAME}:${VSO_PASSWORD}@dev.azure.com/${VSO_ORG}/${vso_project}/_git/${vso_repo} $@
 }
