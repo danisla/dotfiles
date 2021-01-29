@@ -126,6 +126,14 @@ else
     log_green "INFO: istioctl is already installed, delete ${HOME}/bin/istioctl and run download-latest-istio to update"
 fi
 
+# Install opa
+if [[ ! -e ${HOME}/bin/opa ]]; then
+    log_cyan "INFO: Installing opa"
+    download-latest-opa
+else
+    log_green "INFO: opa is already installed, delete ${HOME}/bin/k8s and run download-latest-opa to update"
+fi
+
 # Clone kube-ps1 repo
 if [[ ! -d ${BASE}/kube-ps1 ]]; then
     log_cyan "INFO: Cloning kube-ps1 repo to ${BASE}/kube-ps1"
