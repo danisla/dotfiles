@@ -9,3 +9,6 @@ alias yt-dl='docker run \
     -e PUID=$(id -u) \
     -v "$(pwd)":/workdir:rw \
     mikenye/youtube-dl'
+
+# Init ssh-agent with GCE ssh key
+alias sagent='sshagent_init; ssh-add ${HOME}/.ssh/google_compute_engine'

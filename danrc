@@ -5,6 +5,7 @@
 . ${HOME}/project/env/dotfiles/vsorc
 . ${HOME}/project/env/dotfiles/codeserverrc
 . ${HOME}/project/env/dotfiles/selkies-env
+. ${HOME}/project/env/dotfiles/sagent
 . ${HOME}/project/env/dockerfiles/.dockerfunc.bash
 . ${HOME}/project/env/gcloudfunc/gcloudfunc.bash
 . ${HOME}/project/env/kubefunc/kubefunc.bash
