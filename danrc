@@ -1,6 +1,5 @@
 #!/bin/bash
 
-. ${HOME}/project/env/dotfiles/aliases
 . ${HOME}/project/env/dotfiles/githubrc
 . ${HOME}/project/env/dotfiles/vsorc
 . ${HOME}/project/env/dotfiles/codeserverrc
@@ -10,6 +9,8 @@
 . ${HOME}/project/env/gcloudfunc/gcloudfunc.bash
 . ${HOME}/project/env/kubefunc/kubefunc.bash
 . ${HOME}/project/env/kube-ps1/kube-ps1.sh
+
+. ${HOME}/project/env/dotfiles/aliases
 
 PS1='[\W $(kube_ps1)]\$ '
 
