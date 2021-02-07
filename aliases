@@ -1,7 +1,7 @@
 alias k='kubectl'
 alias ls='ls --color'
 alias ll='ls -l'
-alias grep='grep --color'
+alias grep='grep --color=auto'
 
 alias yt-dl='docker run \
     --rm -i \
