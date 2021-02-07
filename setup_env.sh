@@ -56,7 +56,10 @@ source ${BASE}/dotfiles/githubrc
 # Create symlink to gitconfig
 if [[ ! -e ${HOME}/.gitconfig ]]; then
     log_cyan "INFO: Creating symlink to ${BASE}/dotfiles/gitconfig -> ${HOME}/.gitconfig"
-    ln -sf ${BASE}/dotfiles/gitconfig ${HOME}/.gitconfig
+    (
+        cd $HOME
+        ln -sf ${BASE/$HOME\/}/dotfiles/gitconfig .gitconfig
+    )
 else
     log_green "INFO: gitconfig already configured"
 fi
@@ -152,7 +155,10 @@ fi
 # Create symlink to tmux.conf
 if [[ ! -e ${HOME}/.tmux.conf ]]; then
     log_cyan "INFO: Creating symlink to ${BASE}/dotfiles/tmux.conf -> ${HOME}/.tmux.conf"
-    ln -sf ${BASE}/dotfiles/tmux.conf ${HOME}/.tmux.conf
+    (
+        cd $HOME
+        ln -sf ${BASE/$HOME\/}/dotfiles/tmux.conf .tmux.conf
+    )
 else
     log_green "INFO: tmux.conf already configured"
 fi
