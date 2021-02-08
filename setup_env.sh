@@ -113,6 +113,41 @@ fi
 # Source kubefun to get helper functions
 source ${BASE}/kubefunc/kubefunc.bash
 
+# Install kubectl
+if [[ ! -e ${HOME}/bin/kubectl ]]; then
+    log_cyan "INFO: Installing kubectl"
+    install-kubectl
+else
+    log_green "INFO: kubectl is already installed, delete ${HOME}/bin/kubectl and run install-kubectl to update"
+fi
+
+# Install Krew
+if [[ ! -d $HOME/.krew/bin ]]; then
+    log_cyan "INFO: Installing Krew"
+    install-krew
+    export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+else
+    log_green "INFO: krew is already installed, delete ${HOME}/.krew/bin and run install-krew to update"
+fi
+
+# Install kubectx
+if [[ ! -e ${HOME}/bin/kubectx ]] || ! kubectl ctx >/dev/null 2>&1; then
+    log_cyan "INFO: Installing kubectx"
+    kubectl krew install ctx
+    (cd ${HOME}/bin && ln -sf ../.krew/bin/kubectl-ctx ./kubectx)
+else
+    log_green "INFO: kubectx is already installed, run kubectl krew install ctx to update."
+fi
+
+# Install kubens
+if [[ ! -e ${HOME}/bin/kubens ]] || ! kubectl ns >/dev/null 2>&1; then
+    log_cyan "INFO: Installing kubens"
+    kubectl krew install ns
+    (cd ${HOME}/bin && ln -sf ../.krew/bin/kubectl-ns ./kubens)
+else
+    log_green "INFO: kubens is already installed, run kubectl krew install ns to update."
+fi
+
 # Install k9s
 if [[ ! -e ${HOME}/bin/k9s ]]; then
     log_cyan "INFO: Installing k9s"
