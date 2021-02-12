@@ -23,3 +23,10 @@ export GOOGLE_PROJECT=${GOOGLE_PROJECT:-$(gcloud config get-value project 2>/dev
 # set gopath
 export GOPATH=${HOME}/gopath
 export PATH=${PATH}:${GOPATH}/bin
+
+function update-env() {
+    for d in dockerfiles dotfiles gcloudfunc kube-ps1 kubefunc; do
+        (cd ${HOME}/project/env/$d && git pull)
+    done
+    ${HOME}/project/env/dotfiles/setup_env.sh
+}
