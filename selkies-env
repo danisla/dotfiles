@@ -206,7 +206,7 @@ function pod-broker() {
     local deploy_region=""
     local component="controller"
 
-    [[ $# -eq 0 ]] && log_cyan "USAGE: pod-broker <build|push|deploy-REGION> [-p <project id>] [-c <controller|web>]" && return 1
+    [[ $# -eq 0 ]] && log_cyan "USAGE: pod-broker <build|push|deploy-REGION> [-p <project id>] [-c <controller|web>] [-cwd]" && return 1
 
     while (( "$#" )); do
         case ${1,,} in
@@ -219,6 +219,9 @@ function pod-broker() {
             "-p")
                 shift
                 project_id=$1
+                ;;
+            "-cwd")
+                SELKIES_REPO_DIR="${PWD}"
                 ;;
             "-c")
                 shift
@@ -240,7 +243,8 @@ function pod-broker() {
     local image="gcr.io/${project_id}/kube-pod-broker-${component}:latest"
 
     if [[ ${build} == true ]]; then
-        log_cyan "INFO: Building ${component} image: ${image}"
+        [[ ! -d ${SELKIES_REPO_DIR}/images/${component} ]] && log_red "Build directory not found: ${SELKIES_REPO_DIR}/images/${component}" && return 1
+        log_cyan "INFO: Building ${component} image: ${image} from directory: ${SELKIES_REPO_DIR}/images/${component}"
         (
             cd ${SELKIES_REPO_DIR}/images/${component} && \
             docker build -t ${image} .
@@ -264,7 +268,14 @@ function pod-broker() {
         log_cyan "INFO: deploying updated ${component} with digest $digest to region: ${deploy_region}"
 
         # Update pod-broker statefulset
-        curr_yaml=$(kubectl --context $ctx --namespace pod-broker-system get statefulset pod-broker -o yaml)
+        curr_yaml=$(kubectl --context $ctx --namespace pod-broker-system get statefulset pod-broker -o yaml 2>/dev/null)
+        if [[ -z "${curr_yaml}" ]]; then
+            curr_yaml=$(kubectl --context $ctx --namespace pod-broker-system get deployment pod-broker -o yaml 2>/dev/null)
+        fi
+        if [[ -z "${curr_yaml}" ]]; then
+            log_red "ERROR: failed to get pod-broker yaml"
+            return 1
+        fi
         echo "$curr_yaml" | sed -e "s|image: gcr.io/${project_id}/kube-pod-broker-${component}.*|image: gcr.io/${project_id}/kube-pod-broker-${component}@${digest}|g" | \
             kubectl --context $ctx apply -f -
         [[ $? -ne 0 ]] && log_red "ERROR: pod-broker deployment failed" && return 1
