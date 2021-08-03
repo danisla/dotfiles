@@ -164,6 +164,16 @@ else
     log_green "INFO: istioctl is already installed, delete ${HOME}/bin/istioctl and run download-latest-istio to update"
 fi
 
+# Install helm
+if [[ ! -e ${HOME}/bin/helm ]]; then
+    log_cyan "INFO: Installing helm"
+    download-latest-helm
+    ${HOME}/bin/helm repo add stable https://charts.helm.sh/stable
+    ${HOME}/bin/helm repo update
+else
+    log_green "INFO: helm is already installed, delete ${HOME}/bin/helm and run download-latest-helm to update"
+fi
+
 # Install opa
 if [[ ! -e ${HOME}/bin/opa ]]; then
     log_cyan "INFO: Installing opa"
