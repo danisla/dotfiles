@@ -174,6 +174,14 @@ else
     log_green "INFO: helm is already installed, delete ${HOME}/bin/helm and run download-latest-helm to update"
 fi
 
+# Install kustomize
+if [[ ! -e ${HOME}/bin/kustomize ]]; then
+    log_cyan "INFO: Installing kustomize"
+    download-latest-kustomize
+else
+    log_green "INFO: kustomize is already installed, delete ${HOME}/bin/kustomize and run download-latest-kustomize to update"
+fi
+
 # Install opa
 if [[ ! -e ${HOME}/bin/opa ]]; then
     log_cyan "INFO: Installing opa"
