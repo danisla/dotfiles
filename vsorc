@@ -4,7 +4,7 @@
 #  export VSO_USERNAME="your username"
 #  export VSO_PASSWORD="your vso git clone password"
 #  export VSO_ORG="your vso organization" 
-source ${HOME}/.vso_credentials
+[[ -e ${HOME}/.vso_credentials ]] && source ${HOME}/.vso_credentials
 
 function git-vso-clone () {
   local vso_project=$1
